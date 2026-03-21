@@ -1,0 +1,32 @@
+
+> newprebuild@0.1.0 build
+> next build
+
+▲ Next.js 16.2.1 (Turbopack)
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+
+> Build error occurred
+Error: Turbopack build failed with 1 errors:
+./src/lib/sheetsService.ts:1:1
+Module not found: Can't resolve 'googleapis'
+[31m[1m>[0m [90m1 |[0m [36mimport[0m { google } [36mfrom[0m [32m'googleapis'[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m2 |[0m
+  [90m3 |[0m [36mconst[0m clientEmail = process.env.[33mGOOGLE_CLIENT_EMAIL[0m;
+  [90m4 |[0m [36mconst[0m privateKey = process.env.[33mGOOGLE_PRIVATE_KEY[0m?.replace([35m/\\n/g[0m, [32m'\n'[0m);
+
+
+
+Import trace:
+  Server Component:
+    ./src/lib/sheetsService.ts
+    ./src/app/actions/sheets.ts
+    ./src/app/dashboard/page.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+    at <unknown> (./src/lib/sheetsService.ts:1:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
