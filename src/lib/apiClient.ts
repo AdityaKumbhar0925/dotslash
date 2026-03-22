@@ -1,14 +1,22 @@
-import { dataStore } from './dataStore';
+import { createClient } from './supabase/server';
 
 export async function fetchIncidentsMap() {
-  return dataStore.incidents
-    .filter((i: any) => i.status === 'active')
-    .map((i: any) => ({ ...i }));
+  const supabase = await createClient();
+  const { data, error } = await supabase.from('incidents').select('*').eq('status', 'active');
+  if (error) console.error('fetchIncidentsMap error:', error.message);
+  return data || [];
 }
 
 export async function fetchTriageList() {
-  return dataStore.incidents
-    .filter((i: any) => i.status === 'active' && i.type !== 'early_crack')
+  const supabase = await createClient();
+  const { data, error } = await supabase.from('incidents')
+    .select('*')
+    .eq('status', 'active')
+    .neq('type', 'early_crack');
+    
+  if (error) console.error('fetchTriageList error:', error.message);
+  
+  return (data || [])
     .map((i: any) => ({
       ...i,
       priority_score: (i.severity_score || 0) * (i.buses_per_day || 0),
@@ -18,22 +26,35 @@ export async function fetchTriageList() {
 }
 
 export async function fetchActiveCracks() {
-  return dataStore.incidents
-    .filter((i: any) => i.type === 'early_crack')
-    .sort((a: any, b: any) => (a.fix_deadline_days || 99) - (b.fix_deadline_days || 99));
+  const supabase = await createClient();
+  const { data, error } = await supabase.from('incidents')
+    .select('*')
+    .eq('type', 'early_crack');
+    
+  if (error) console.error('fetchActiveCracks error:', error.message);
+  return (data || []).sort((a: any, b: any) => (a.fix_deadline_days || 99) - (b.fix_deadline_days || 99));
 }
 
 export async function fetchFleetStatus() {
-  return [...dataStore.fleet];
+  const supabase = await createClient();
+  const { data, error } = await supabase.from('fleet').select('*');
+  if (error) console.error('fetchFleetStatus error:', error.message);
+  return data || [];
 }
 
 export async function fetchPublicMap() {
-  return dataStore.incidents.map((inc: any) => ({
+  const supabase = await createClient();
+  const { data, error } = await supabase.from('incidents').select('*');
+  if (error) console.error('fetchPublicMap error:', error.message);
+  return (data || []).map((inc: any) => ({
     ...inc,
     status_label: inc.status === 'repaired' ? 'Repaired' : inc.type.replace('_', ' '),
   }));
 }
 
 export async function fetchWardScores() {
-  return [...dataStore.wards];
+  const supabase = await createClient();
+  const { data, error } = await supabase.from('wards').select('*');
+  if (error) console.error('fetchWardScores error:', error.message);
+  return data || [];
 }

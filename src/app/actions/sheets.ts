@@ -26,6 +26,7 @@ export async function simulateWebhookSyncAction() {
   const incident = dataStore.incidents.find((i: any) => i.status === 'active');
   if (incident) {
     incident.status = 'repaired';
+    incident.type = 'repaired';
     incident.repaired_at = new Date().toISOString();
     incident.verified_by = 'Contractor (Simulation Action)';
   }

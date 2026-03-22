@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { logout } from '@/app/actions/auth';
+import { logout } from '@/app/login/actions';
 
 interface TopBarProps {
   role: 'public' | 'government_official';

@@ -4,6 +4,7 @@ export const mockIncidents = [
     lat: 21.1702,
     lng: 72.8311,
     type: 'pothole',
+    area: 4.5,
     location_name: 'Ring Road, Udhna Darwaja',
     buses_per_day: 120,
     detected_at: '2026-03-21T08:30:00Z',
@@ -14,6 +15,7 @@ export const mockIncidents = [
     lat: 21.1856,
     lng: 72.8123,
     type: 'pothole',
+    area: 2.2,
     location_name: 'Adajan Patia',
     buses_per_day: 80,
     detected_at: '2026-03-20T14:15:00Z',
@@ -58,6 +60,7 @@ export const mockIncidents = [
     lat: 21.1901,
     lng: 72.8210,
     type: 'pothole',
+    area: 6.8,
     location_name: 'Chowk Bazar Main Road',
     buses_per_day: 300,
     detected_at: '2026-03-21T07:15:00Z',
@@ -68,6 +71,7 @@ export const mockIncidents = [
     lat: 21.1550,
     lng: 72.7950,
     type: 'pothole',
+    area: 1.5,
     location_name: 'Piplod Dumas Road',
     buses_per_day: 150,
     detected_at: '2026-03-20T16:20:00Z',
@@ -101,6 +105,7 @@ export const mockIncidents = [
     lat: 21.1685,
     lng: 72.8420,
     type: 'pothole',
+    area: 3.8,
     location_name: 'Rustampura',
     buses_per_day: 90,
     detected_at: '2026-03-21T10:10:00Z',
@@ -122,6 +127,7 @@ export const mockIncidents = [
     lat: 21.1890,
     lng: 72.8360,
     type: 'pothole',
+    area: 5.2,
     location_name: 'Delhi Gate',
     buses_per_day: 280,
     detected_at: '2026-03-21T06:45:00Z',
@@ -132,6 +138,7 @@ export const mockIncidents = [
     lat: 21.2010,
     lng: 72.8250,
     type: 'pothole',
+    area: 2.9,
     location_name: 'Ved Road',
     buses_per_day: 140,
     detected_at: '2026-03-20T22:30:00Z',
@@ -166,29 +173,43 @@ export const mockIncidents = [
 const generateMockData = () => {
   const generated = [];
   const types = ['pothole', 'pothole', 'early_crack', 'early_crack', 'repaired'];
-  const locations = ['Ring Road', 'Udhna Magdalla Road', 'Gaurav Path', 'VIP Road', 'Dumas Road', 'Varachha Main Road', 'Katargam Road', 'Adajan Patiya'];
+  
+  const regions = [
+    { state: 'Gujarat', baseLat: 21.12, baseLng: 72.76, locs: ['Ring Road', 'Udhna Magdalla Road', 'Gaurav Path', 'VIP Road', 'Dumas Road', 'Varachha Main', 'Katargam', 'Adajan Patiya'] },
+    { state: 'Maharashtra', baseLat: 19.07, baseLng: 72.87, locs: ['Andheri West', 'Bandra Kurla Complex', 'Dadar', 'Marine Drive', 'Powai', 'Worli Sea Face'] },
+    { state: 'Delhi', baseLat: 28.61, baseLng: 77.20, locs: ['Connaught Place', 'Vasant Kunj', 'Saket', 'Karol Bagh', 'Hauz Khas', 'Lajpat Nagar'] },
+    { state: 'Karnataka', baseLat: 12.97, baseLng: 77.59, locs: ['Koramangala', 'Indiranagar', 'Whitefield', 'Jayanagar', 'HSR Layout', 'Malleshwaram'] }
+  ];
 
-  for (let i = 16; i <= 150; i++) {
+  for (let i = 16; i <= 250; i++) {
     const type = types[Math.floor(Math.random() * types.length)];
     const isRepaired = type === 'repaired';
-    const locName = locations[Math.floor(Math.random() * locations.length)];
+    const region = regions[Math.floor(Math.random() * regions.length)];
+    const locName = region.locs[Math.floor(Math.random() * region.locs.length)];
     
     generated.push({
       id: i.toString(),
-      lat: 21.12 + Math.random() * 0.12, // Spread around Surat roughly
-      lng: 72.76 + Math.random() * 0.10,
+      lat: region.baseLat + (Math.random() - 0.5) * 0.15, 
+      lng: region.baseLng + (Math.random() - 0.5) * 0.15,
       type: type,
+      ...(type === 'pothole' ? { area: Math.round((Math.random() * 5 + 0.5) * 10) / 10 } : {}),
       location_name: `${locName} Patch ${Math.floor(Math.random() * 900)}`,
       fix_deadline_days: type === 'early_crack' ? Math.floor(Math.random() * 14) + 1 : undefined,
       buses_per_day: Math.floor(Math.random() * 400) + 10,
       detected_at: new Date(Date.now() - Math.random() * 10000000000).toISOString(),
       repaired_at: isRepaired ? new Date(Date.now() - Math.random() * 5000000000).toISOString() : undefined,
       status: isRepaired ? 'repaired' : 'active',
-      verified_by: isRepaired ? 'SMC Inspector ' + Math.floor(Math.random() * 100) : undefined
+      verified_by: isRepaired ? 'Contractor ' + Math.floor(Math.random() * 100) : undefined
     });
   }
   return generated;
 };
+
+mockIncidents.forEach((inc: any) => {
+  if (inc.type === 'pothole' && !inc.area) {
+    inc.area = Math.round((Math.random() * 5 + 1) * 10) / 10;
+  }
+});
 
 mockIncidents.push(...(generateMockData() as any));
 

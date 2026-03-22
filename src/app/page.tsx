@@ -1,24 +1,81 @@
 import TopBar from '@/components/TopBar';
 import Map from '@/components/Map';
-import { Search } from 'lucide-react';
 import { fetchPublicMap, fetchWardScores } from '@/lib/apiClient';
+import PublicSearchBar from '@/components/PublicSearchBar';
 
-export default async function PublicPortal() {
-  const publicMap = await fetchPublicMap();
+const getDistanceInMeters = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  const R = 6371e3; 
+  const p1 = lat1 * Math.PI / 180;
+  const p2 = lat2 * Math.PI / 180;
+  const dp = (lat2 - lat1) * Math.PI / 180;
+  const dl = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dp/2) * Math.sin(dp/2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl/2) * Math.sin(dl/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+};
+
+export default async function PublicPortal({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  const params = await searchParams;
+  const q = (params?.q || '').toLowerCase();
+
+  const rawPublicMap = await fetchPublicMap();
   const mockWards = await fetchWardScores();
 
-  const mapMarkers = publicMap.map((inc: any) => ({
-    id: inc.id || Math.random().toString(),
-    lat: inc.lat,
-    lng: inc.lng,
-    type: inc.type as any,
-    popupData: {
-      location_name: inc.location_name || 'Surat Road',
-      status_label: inc.status_label || inc.type,
-      detected_at: inc.detected_at,
-      ...(inc.repaired_at && { repaired_at: inc.repaired_at })
+  const publicMap = q 
+    ? rawPublicMap.filter((inc: any) => (inc.location_name || '').toLowerCase().includes(q))
+    : rawPublicMap;
+
+  const CLUSTER_RADIUS_M = 15;
+  const clusteredMarkers: any[] = [];
+
+  for (const inc of publicMap) {
+    let foundCluster = null;
+    for (const cluster of clusteredMarkers) {
+      if (getDistanceInMeters(inc.lat, inc.lng, cluster.lat, cluster.lng) <= CLUSTER_RADIUS_M) {
+        foundCluster = cluster;
+        break;
+      }
     }
-  }));
+
+    if (foundCluster) {
+      foundCluster.incidents.push(inc);
+      foundCluster.lat = foundCluster.incidents.reduce((a: number, b: any) => a + b.lat, 0) / foundCluster.incidents.length;
+      foundCluster.lng = foundCluster.incidents.reduce((a: number, b: any) => a + b.lng, 0) / foundCluster.incidents.length;
+    } else {
+      clusteredMarkers.push({
+        id: `cluster-${inc.id || Math.random()}`,
+        lat: inc.lat,
+        lng: inc.lng,
+        incidents: [inc],
+        type: inc.type
+      });
+    }
+  }
+
+  const mapMarkers = clusteredMarkers.map((c: any) => {
+    const isCluster = c.incidents.length > 1;
+    const numPotholes = c.incidents.filter((i: any) => i.type === 'pothole').length;
+    const numCracks = c.incidents.filter((i: any) => i.type === 'early_crack').length;
+    const densityMetric = parseFloat(((numPotholes * 1) + (numCracks * 0.2)).toFixed(2));
+    const locationName = isCluster ? `Hazard Cluster (${c.incidents[0].location_name.split(',')[0]})` : (c.incidents[0].location_name || 'Surat Road');
+    
+    const maxSeverity = Math.max(...c.incidents.map((i: any) => i.severity_score || 0));
+
+    return {
+      id: c.id,
+      lat: c.lat,
+      lng: c.lng,
+      type: isCluster ? 'cluster' : c.incidents[0].type,
+      severity: maxSeverity,
+      popupData: {
+        location_name: locationName,
+        status_label: isCluster ? 'Dense Cluster' : (c.incidents[0].status_label || c.incidents[0].type),
+        ...(isCluster && { cluster_density: densityMetric, anomaly_count: c.incidents.length }),
+        ...(!isCluster && c.incidents[0].repaired_at && { repaired_at: c.incidents[0].repaired_at }),
+        ...(!isCluster && c.incidents[0].area && { area_sq_m: c.incidents[0].area })
+      }
+    };
+  });
 
   const getBarColor = (percentage: number) => {
     if (percentage > 50) return 'bg-severe';
@@ -36,18 +93,19 @@ export default async function PublicPortal() {
         <section className="flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h1 className="text-2xl font-bold tracking-tight">Live Road Conditions</h1>
-            <div className="relative w-full sm:max-w-xs">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
-              <input 
-                type="text" 
-                placeholder="Search your area, e.g. Adajan, Vesu..." 
-                className="w-full bg-[#0f0f0f] border border-white/10 rounded-full py-2 pl-9 pr-4 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-public_teal transition-colors"
-              />
-            </div>
+            <PublicSearchBar />
           </div>
 
           <div className="h-[50vh] min-h-[400px] w-full relative rounded-xl overflow-hidden shadow-2xl shadow-black">
-            <Map center={[21.1702, 72.8311]} zoom={12} markers={mapMarkers} />
+            <Map 
+              center={
+                q && mapMarkers.length > 0 
+                  ? [mapMarkers[0].lat, mapMarkers[0].lng] as [number, number]
+                  : [21.1702, 72.8311] as [number, number]
+              } 
+              zoom={q && mapMarkers.length > 0 ? 14 : 12} 
+              markers={mapMarkers} 
+            />
             
             {/* Overlay Map Legend */}
             <div className="absolute bottom-4 right-4 z-[400] card bg-black/80 backdrop-blur-md p-4 flex flex-col gap-2 border-white/10">

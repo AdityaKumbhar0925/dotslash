@@ -15,6 +15,7 @@ export async function POST(request: Request) {
     
     if (incident) {
       incident.status = 'repaired';
+      incident.type = 'repaired';
       incident.repaired_at = new Date().toISOString();
       incident.verified_by = 'Contractor (via Google Sheets)';
       return NextResponse.json({ success: true, message: `Incident ${incidentId} marked as repaired!` });

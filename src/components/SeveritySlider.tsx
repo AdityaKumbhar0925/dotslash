@@ -16,7 +16,9 @@ export default function SeveritySlider() {
 
   const handleDragEnd = (e: React.MouseEvent<HTMLInputElement> | React.TouchEvent<HTMLInputElement>) => {
     const val = (e.target as HTMLInputElement).value;
-    router.push(`/dashboard?minSeverity=${val}`, { scroll: false });
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('minSeverity', val);
+    router.push(`/dashboard?${params.toString()}`, { scroll: false });
   };
 
   return (

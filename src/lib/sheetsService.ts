@@ -27,7 +27,7 @@ export async function exportToGoogleSheets(incidents: any[]) {
     try {
       const getRes = await sheetsAction.spreadsheets.values.get({
         spreadsheetId: sheetId,
-        range: 'Sheet1!A1:G1',
+        range: 'Sheet1!A1:H1',
       });
       includeHeaders = !getRes.data.values || getRes.data.values.length === 0;
     } catch {
@@ -40,7 +40,7 @@ export async function exportToGoogleSheets(incidents: any[]) {
 
   if (includeHeaders) {
     values.push([
-      'Incident ID', 'Location', 'Severity / Priority', 'Status', 'Date Detected', 'Google Maps Link', 'Contractor Fixed? (CHECK BOX)'
+      'Incident ID', 'Location', 'Severity / Priority', 'Type', 'Status', 'Date Detected', 'Google Maps Link', 'Contractor Fixed? (CHECK BOX)'
     ]);
   }
 
@@ -54,6 +54,7 @@ export async function exportToGoogleSheets(incidents: any[]) {
       inc.id,
       inc.location_name,
       severity,
+      inc.type,
       inc.status,
       new Date(inc.detected_at).toLocaleString(),
       mapsLink,
@@ -65,7 +66,7 @@ export async function exportToGoogleSheets(incidents: any[]) {
     try {
       await sheetsAction.spreadsheets.values.append({
         spreadsheetId: sheetId,
-        range: 'Sheet1!A1:G1',
+        range: 'Sheet1!A1:H1',
         valueInputOption: 'USER_ENTERED',
         requestBody: { values },
       });
