@@ -30,10 +30,10 @@ function MapEffect({ center, zoom }: { center: [number, number]; zoom: number })
       initialLock.current = true;
       return;
     }
-    
+
     const latShift = Math.abs(center[0] - prevCoords.current[0]);
     const lngShift = Math.abs(center[1] - prevCoords.current[1]);
-    
+
     // Only snap the camera if the dashboard physically requested a new city/state (>500 meters)
     if (latShift > 0.005 || lngShift > 0.005) {
       map.setView(center, zoom);
@@ -80,7 +80,7 @@ export default function MapInner({
       }
       sizeClass = 'w-6 h-6 flex flex-col items-center justify-center';
       const html = `<div class="${sizeClass} ${color} ${shapeClass} border-2 border-white/50 ${shadow}"></div>`;
-      
+
       return L.divIcon({
         className: 'custom-leaflet-icon',
         html,
@@ -125,7 +125,7 @@ export default function MapInner({
     }
 
     const html = `<div class="${sizeClass} ${color} ${shapeClass} border-2 border-[#121212] shadow-sm ${shadow}"></div>`;
-    
+
     return L.divIcon({
       className: 'custom-leaflet-icon',
       html,
@@ -139,9 +139,6 @@ export default function MapInner({
       <style>{`
         .leaflet-container {
           background-color: #0c0c0c;
-        }
-        .map-tiles {
-          filter: invert(100%) hue-rotate(180deg) brightness(105%) contrast(90%);
         }
         .leaflet-popup-content-wrapper {
           background-color: #1a1a1a;
@@ -160,10 +157,12 @@ export default function MapInner({
         zoomControl={false}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          className="map-tiles"
+          attribution='&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>, &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a>'
+          url="https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png"
         />
+
+
+
         <MapEffect center={center} zoom={zoom} />
         {markers.map((mrk) => (
           <Marker

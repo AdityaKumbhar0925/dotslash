@@ -5,10 +5,10 @@ import os
 frame_folder = "output_frames"
 
 # Output video name
-output_video = "final_video.mp4"
+output_video = "final_video1.mp4"
 
 # FPS (same as original video ideally)
-fps = 60
+fps = 30
 
 # Get sorted list of images
 images = sorted([

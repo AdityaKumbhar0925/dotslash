@@ -10,14 +10,14 @@ from datetime import datetime
 # EDGE DEVICE CONFIGURATION (Hardware & API)
 # ==========================================
 MODEL_PATH = "src/scripts/best.pt"
-VIDEO_PATH = "src/scripts/inputvideo.mp4"
+VIDEO_PATH = "src/scripts/inputvideo3.mp4"
 API_URL = "http://localhost:3000/api/ingest"
 BATCH_SIZE = 5  # Flush to database when queue has 5 incidents
 
 # Telemetry / Movement Mocking (40 km/hr = 11.11 m/s)
-START_LAT = 21.1702
-START_LNG = 72.8311
-SPEED_KMH = 40.0
+START_LAT = 21.1671
+START_LNG = 72.7852
+SPEED_KMH = 140.0
 SPEED_MS = SPEED_KMH * (1000.0 / 3600.0)
 
 # Approx 111,111 meters per degree at the equator

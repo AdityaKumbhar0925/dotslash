@@ -34,9 +34,6 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <button formAction={login} className="bg-smc_blue rounded-md px-4 py-2 text-white font-bold hover:bg-[#154e8c] transition-colors mb-2 shadow-[0_0_15px_rgba(30,128,230,0.3)]">
           Sign In
         </button>
-        <button formAction={signup} className="border border-white/20 rounded-md px-4 py-2 text-white font-semibold hover:bg-white/5 transition-colors">
-          Sign Up
-        </button>
         
         {params?.message && (
           <p className="mt-4 p-3 bg-red-500/10 border border-red-500/20 text-red-500 text-center text-sm font-bold rounded-md">

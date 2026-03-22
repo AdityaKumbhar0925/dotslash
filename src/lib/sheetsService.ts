@@ -47,8 +47,8 @@ export async function exportToGoogleSheets(incidents: any[]) {
   incidents.forEach((inc) => {
     const mapsLink = `https://www.google.com/maps/search/?api=1&query=${inc.lat},${inc.lng}`;
     const severity = inc.type === 'early_crack' 
-      ? `Priority: ${inc.crack_priority} (Deadline: ${inc.fix_deadline_days} days)`
-      : `Score: ${inc.severity_score}`;
+      ? `Deadline: ${inc.fix_deadline_days} days`
+      : `Score: ${inc.severity_score ?? 0}`;
 
     values.push([
       inc.id,

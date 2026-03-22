@@ -3,6 +3,7 @@ import Map from '@/components/Map';
 import { Download } from 'lucide-react';
 import { fetchIncidentsMap, fetchTriageList, fetchActiveCracks, fetchFleetStatus } from '@/lib/apiClient';
 import { exportActiveIncidentsAction, simulateWebhookSyncAction, exportSingleIncidentAction } from '@/app/actions/sheets';
+import { deleteIncidentAction } from '@/app/actions/incidents';
 import SeveritySlider from '@/components/SeveritySlider';
 import AreaFilter from '@/components/AreaFilter';
 import StateFilter from '@/components/StateFilter';
@@ -29,7 +30,7 @@ const getDistanceInMeters = (lat1: number, lon1: number, lat2: number, lon2: num
   return R * c;
 };
 
-export default async function Dashboard({ searchParams }: { searchParams: Promise<{ minSeverity?: string, area?: string, state?: string }> }) {
+export default async function Dashboard({ searchParams }: { searchParams: Promise<{ minSeverity?: string, area?: string, state?: string, focusLat?: string, focusLng?: string }> }) {
   const params = await searchParams;
   const minSev = parseInt(params?.minSeverity || '0', 10);
   const areaFilter = (params?.area || '').toLowerCase();
@@ -39,6 +40,9 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
     fetchIncidentsMap(),
     fetchFleetStatus()
   ]);
+
+  const focusLat = params?.focusLat ? parseFloat(params.focusLat) : null;
+  const focusLng = params?.focusLng ? parseFloat(params.focusLng) : null;
 
   const rawTriageList = rawMapData
     .filter((i: any) => i.type !== 'early_crack')
@@ -180,13 +184,15 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
           <section className="card p-1 h-[50vh] min-h-[400px] flex flex-col relative w-full overflow-hidden">
             <Map 
               center={
-                areaFilter && mapMarkers.length > 0
+                focusLat && focusLng
+                  ? [focusLat, focusLng] as [number, number]
+                  : areaFilter && mapMarkers.length > 0
                   ? [mapMarkers[0].lat, mapMarkers[0].lng] as [number, number]
                   : stateFilter && mapMarkers.length > 0
                   ? [mapMarkers[0].lat, mapMarkers[0].lng] as [number, number]
                   : [21.1702, 72.8311] as [number, number]
               } 
-              zoom={areaFilter ? 14 : (stateFilter ? 11 : 5)} 
+              zoom={focusLat && focusLng ? 18 : areaFilter ? 14 : (stateFilter ? 11 : 5)} 
               markers={mapMarkers} 
             />
             <div className="absolute bottom-4 left-4 z-[400] card bg-black/80 backdrop-blur-md p-3 px-4 flex flex-col sm:flex-row items-start sm:items-center gap-4 border-white/10 shadow-xl shadow-black">
@@ -194,8 +200,6 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                 <span className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_#ef4444]"></div> &gt; 60%</span>
                 <span className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-yellow-500 shadow-[0_0_8px_#eab308]"></div> 30-60%</span>
                 <span className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]"></div> &lt; 30%</span>
-                <span className="text-white/30 mx-1">|</span>
-                <span className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rotate-45 bg-early_crack shadow-[0_0_8px_#7F77DD]"></div> Early Crack</span>
               </div>
             </div>
           </section>
@@ -249,12 +253,23 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                         </span>
                       </td>
                       <td className="p-4 text-right">
-                        <form action={exportSingleIncidentAction} className="flex items-center justify-end gap-3">
-                          <input type="hidden" name="id" value={crack.id} />
-                          <button type="submit" className="text-xs font-bold text-white/50 hover:text-white transition-colors bg-white/5 border border-white/10 px-3 py-1.5 rounded-full hover:bg-white/10 shadow-lg shadow-black/20">
-                            Upload to Sheet
-                          </button>
-                        </form>
+                        <div className="flex items-center justify-end gap-2">
+                          <a href={`?minSeverity=${minSev}&area=${areaFilter}&state=${stateFilter}&focusLat=${crack.lat}&focusLng=${crack.lng}`} className="text-[10px] font-bold text-smc_blue hover:text-white transition-colors border border-smc_blue/30 px-2 py-1.5 rounded-full hover:bg-smc_blue/20 bg-transparent shadow-lg text-center leading-none inline-flex items-center">
+                            View
+                          </a>
+                          <form action={exportSingleIncidentAction} className="inline-flex">
+                            <input type="hidden" name="id" value={crack.id} />
+                            <button type="submit" className="text-[10px] font-bold text-white/50 hover:text-white transition-colors bg-white/5 border border-white/10 px-2 py-1.5 rounded-full hover:bg-white/10 shadow-lg shadow-black/20 text-center leading-none inline-flex items-center">
+                              Upload
+                            </button>
+                          </form>
+                          <form action={deleteIncidentAction} className="inline-flex">
+                            <input type="hidden" name="id" value={crack.id} />
+                            <button type="submit" className="text-[10px] font-bold text-red-500/80 hover:text-red-500 transition-colors bg-red-500/10 border border-red-500/20 px-2 py-1.5 rounded-full hover:bg-red-500/20 shadow-lg text-center leading-none inline-flex items-center">
+                              Delete
+                            </button>
+                          </form>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -295,12 +310,23 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                       <span className="text-white/40 text-xs font-mono uppercase tracking-wider">Severity Score</span>
                       <span className="text-lg font-bold tabular-nums leading-none tracking-tight">{item.severity_score ?? 0}</span>
                     </div>
-                    <form action={exportSingleIncidentAction} className="flex gap-2">
-                       <input type="hidden" name="id" value={item.id} />
-                       <button type="submit" className="text-[10px] font-bold text-white/50 hover:text-white transition-colors border border-white/10 px-2 py-1.5 rounded-full hover:bg-white/5 bg-transparent shadow-lg">
-                         Upload
-                       </button>
-                    </form>
+                    <div className="flex gap-2 items-center">
+                       <a href={`?minSeverity=${minSev}&area=${areaFilter}&state=${stateFilter}&focusLat=${item.lat}&focusLng=${item.lng}`} className="text-[10px] font-bold text-smc_blue hover:text-white transition-colors border border-smc_blue/30 px-2 py-1.5 rounded-full hover:bg-smc_blue/20 bg-transparent shadow-lg text-center leading-none inline-flex items-center">
+                         View
+                       </a>
+                       <form action={exportSingleIncidentAction} className="inline-flex">
+                         <input type="hidden" name="id" value={item.id} />
+                         <button type="submit" className="text-[10px] font-bold text-white/50 hover:text-white transition-colors border border-white/10 px-2 py-1.5 rounded-full hover:bg-white/5 bg-transparent shadow-lg leading-none inline-flex items-center">
+                           Upload
+                         </button>
+                       </form>
+                       <form action={deleteIncidentAction} className="inline-flex">
+                         <input type="hidden" name="id" value={item.id} />
+                         <button type="submit" className="text-[10px] font-bold text-red-500/80 hover:text-red-500 transition-colors border border-red-500/20 px-2 py-1.5 rounded-full hover:bg-red-500/10 bg-transparent shadow-lg leading-none inline-flex items-center">
+                           Delete
+                         </button>
+                       </form>
+                    </div>
                   </div>
                 </div>
               ))}

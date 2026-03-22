@@ -26,26 +26,41 @@ export async function POST(req: Request) {
 
     const supabase = await getSupabase();
 
-    const formattedIncidents = payloads.map((p) => {
+    const formattedIncidents = [];
+    
+    for (const p of payloads) {
       // Calculate physical area (m²) from bounding box logic
       let area = null;
       if (p.boundingBox) {
-        // Assume bbox represents YOLO output pixel widths
-        // Example Conversion: 10,000 pixels squared = ~0.6 m²
         const PIXEL_TO_SQ_METERS = 0.00006; 
         const w = p.boundingBox.w || (p.boundingBox.xmax - p.boundingBox.xmin) || 100;
         const h = p.boundingBox.h || (p.boundingBox.ymax - p.boundingBox.ymin) || 100;
         area = parseFloat((w * h * PIXEL_TO_SQ_METERS).toFixed(2));
       }
 
-      // Generate base severity dynamically influenced by the bounding box area
       const baseAreaSeverity = area ? Math.min(area * 10, 40) : 0;
-      
       const isCrack = p.type && p.type.toLowerCase().includes('crack');
       let severity_score = isCrack ? 20 : 20 + baseAreaSeverity;
       severity_score = severity_score + Math.floor(Math.random() * 10);
 
-      return {
+      let location_name = `Camera Snapshot [${p.lat.toFixed(3)}, ${p.lng.toFixed(3)}]`;
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${p.lat}&lon=${p.lng}`, {
+          headers: { 'User-Agent': 'RoadLens-Dashboard/1.0' }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.display_name) {
+             location_name = data.display_name.split(',').slice(0, 2).join(',').trim();
+          }
+        }
+        // Artificial delay to respect OSM's 1 request/sec rate limit
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } catch (e) {
+        // Fallback silently
+      }
+
+      formattedIncidents.push({
         lat: p.lat,
         lng: p.lng,
         type: p.type || 'pothole',
@@ -54,10 +69,10 @@ export async function POST(req: Request) {
         severity_score: Math.min(Math.floor(severity_score), 100),
         buses_per_day: Math.floor(Math.random() * 300) + 50,
         fix_deadline_days: isCrack ? Math.floor(Math.random() * 15) + 3 : null,
-        location_name: `Pi Camera [${p.lat.toFixed(3)}, ${p.lng.toFixed(3)}]`,
+        location_name,
         detected_at: p.detected_at || new Date().toISOString()
-      };
-    });
+      });
+    }
 
     let inserted = 0;
     

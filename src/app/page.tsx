@@ -19,7 +19,50 @@ export default async function PublicPortal({ searchParams }: { searchParams: Pro
   const q = (params?.q || '').toLowerCase();
 
   const rawPublicMap = await fetchPublicMap();
-  const mockWards = await fetchWardScores();
+  
+  // Automatically generate dynamic "Ward Health Scores" strictly parsed from live anomalies!
+  const areaGroups: Record<string, any> = {};
+  
+  rawPublicMap.forEach((inc: any) => {
+    let area = inc.location_name || 'Surat Region';
+    if (area.includes(',')) area = area.split(',')[0].trim();
+    if (area.includes('Camera Snapshot') || area.includes('Pi Camera')) return;
+    
+    if (!areaGroups[area]) {
+      areaGroups[area] = { 
+        id: area, 
+        ward_name: area, 
+        potholes: 0,
+        cracks: 0,
+        total_severity: 0,
+        // Assume structural region scale for math
+        assumed_roads: 150 
+      };
+    }
+    
+    if (inc.status === 'active') {
+      if (inc.type === 'pothole') areaGroups[area].potholes += 1;
+      else areaGroups[area].cracks += 1;
+      areaGroups[area].total_severity += (inc.severity_score || 0);
+    }
+  });
+
+  const liveWards = Object.values(areaGroups)
+    .map(w => {
+      const activeAnomalies = w.potholes + w.cracks;
+      const severityPenalty = w.total_severity * 0.05;
+      const damageRaw = ((activeAnomalies + severityPenalty) / w.assumed_roads) * 100;
+      
+      return {
+        id: w.id,
+        ward_name: w.ward_name,
+        damage_percentage: Math.min(Math.max(Math.round(damageRaw), 1), 99),
+        damaged_roads: activeAnomalies,
+        total_roads: w.assumed_roads
+      };
+    })
+    .sort((a, b) => b.damage_percentage - a.damage_percentage)
+    .slice(0, 12); // Display up to 12 highest risk areas
 
   const publicMap = q 
     ? rawPublicMap.filter((inc: any) => (inc.location_name || '').toLowerCase().includes(q))
@@ -130,7 +173,7 @@ export default async function PublicPortal({ searchParams }: { searchParams: Pro
         <section className="flex flex-col gap-4 pb-12">
           <h2 className="text-xl font-bold tracking-tight">Ward health scores — this month</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {mockWards.map((ward: any) => (
+            {liveWards.map((ward: any) => (
               <div key={ward.id} className="card p-4 flex flex-col gap-3 hover:border-white/20 transition-colors group cursor-default">
                 <div className="flex items-center justify-between">
                   <span className="font-semibold">{ward.ward_name}</span>
